@@ -1,3 +1,4 @@
+#include <Arduino.h>
 #include <WiFi.h>
 #include "MenuManager.h"
 
@@ -6,14 +7,14 @@
 #define LCD_LINES 4
 
 // Кнопки
-const int buttonOk = 12;   // Кнопка подверждения
-const int buttonUp = 13;    // Верхняя кнопка
-const int buttonDown = 16;  // Нижняя кнопка
-const int pinTickBalance = 26;
-const int pinDataBalance = 27;
+const int buttonOk = 16;   // Кнопка подверждения
+const int buttonUp = 4;    // Верхняя кнопка
+const int buttonDown = 2;  // Нижняя кнопка
+const int pinTickBalance = 12;
+const int pinDataBalance = 13;
 
-const char* ssid = "mr_home";       // Название Wi-Fi
-const char* password = "46981097";  // Пароль Wi-Fi
+const char* ssid = "PLUM TECHNOLOGIES";       // Название Wi-Fi
+const char* password = "455855454";  // Пароль Wi-Fi
 
 const uint8_t wifiIcon[4][8] = {
   {
@@ -63,7 +64,7 @@ int amount = 0;
 int settingIndex = 0;
 unsigned long lastPressTime = 0;
 const unsigned long longPressThreshold = 1000;  // 1 сек
-
+ 
 LiquidCrystal_I2C lcd(I2C_ADDR, LCD_COLUMNS, LCD_LINES);
 
 MenuContainer container;
@@ -80,6 +81,7 @@ int getSignalStrength(long rssi) {
   }
 }
 
+
 void updateWifiIcon() {
   static long lastTime = 0;
   long currTime = millis();
@@ -90,9 +92,9 @@ void updateWifiIcon() {
 
   char icons[4] = { '\x00', '\x01', '\x02', '\x03' };
 
-  lcd.setCursor(19, 0);
+  //  lcd.setCursor(19, 0);
   if (WiFi.status() == WL_CONNECTED) {
-    long rssi = WiFi.RSSI();  // Получаем RSSI (силу сигнала)    
+    long rssi = WiFi.RSSI();  // Получаем RSSI (силу сигнала)
     int rssiIndex = getSignalStrength(rssi);  // Градация сигнала
     lcd.print(icons[rssiIndex]);
 
@@ -103,13 +105,14 @@ void updateWifiIcon() {
 }
 
 void setup() {
+  // put your setup code here, to run once:
   Serial.begin(9600);
 
-  pinMode(buttonOk, INPUT_PULLUP);
-  pinMode(buttonUp, INPUT_PULLUP);
-  pinMode(buttonDown, INPUT_PULLUP);
-  pinMode(pinTickBalance, INPUT_PULLUP);
-  pinMode(pinDataBalance, OUTPUT);
+  //  pinMode(16, INPUT);
+  //  pinMode(buttonUp, INPUT_PULLUP);
+  //  pinMode(buttonDown, INPUT_PULLUP);
+  //  pinMode(pinTickBalance, INPUT_PULLUP);
+  //  pinMode(pinDataBalance, OUTPUT);
 
   Wire.begin(14, 15);
   lcd.init();
@@ -139,33 +142,39 @@ void setup() {
 }
 
 void loop() {
+  // put your main code here, to run repeatedly:
   // Обработка иконка Wi-Fi
-  updateWifiIcon();
-  
-  // Обработка кнопок
-  if (digitalRead(buttonUp) == LOW) {
-    delay(20);
-    while (digitalRead(buttonUp) == LOW)
-      ;
-    Event ev(BUTTON_UP_PRESSED);
+  updateWifiIcon();   
+
+//  // Обработка кнопок
+//  if (digitalRead(buttonUp) == LOW) {
+//    delay(20);
+//    while (digitalRead(buttonUp) == LOW)
+//      ;
+//    Event ev(BUTTON_UP_PRESSED);
+//    container.handleEvent(&ev);
+//  } else if (digitalRead(buttonDown) == LOW) {
+//    delay(20);
+//    while (digitalRead(buttonDown) == LOW)
+//      ;
+//    Event ev(BUTTON_DOWN_PRESSED);
+//    container.handleEvent(&ev);
+//  } else if (digitalRead(buttonOk) == LOW) {
+//    delay(20);
+//    while (digitalRead(buttonOk) == LOW)
+//      ;
+//    Event ev(BUTTON_OK_PRESSED);
+//    container.handleEvent(&ev);
+//  } else if (digitalRead(pinTickBalance) == LOW) {
+//    delay(20);
+//    while (digitalRead(pinTickBalance) == LOW)
+//      ;
+//    Event ev(TICK);
+//    container.handleEvent(&ev);
+//  } 
+
+  if (Serial.available() > 0) { 
+    Event ev(UART_ON_RECEIVED);
     container.handleEvent(&ev);
-  } else if (digitalRead(buttonDown) == LOW) {
-    delay(20);
-    while (digitalRead(buttonDown) == LOW)
-      ;
-    Event ev(BUTTON_DOWN_PRESSED);
-    container.handleEvent(&ev);
-  } else if (digitalRead(buttonOk) == LOW) {
-    delay(20);
-    while (digitalRead(buttonOk) == LOW)
-      ;
-    Event ev(BUTTON_OK_PRESSED);
-    container.handleEvent(&ev);
-  } else if (digitalRead(pinTickBalance) == LOW) {
-    delay(20);
-    while (digitalRead(pinTickBalance) == LOW)
-      ;
-    Event ev(TICK);
-    container.handleEvent(&ev);
-  }  
+  } 
 }
