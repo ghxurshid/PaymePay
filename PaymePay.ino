@@ -1,0 +1,171 @@
+#include <WiFi.h>
+#include "MenuManager.h"
+
+#define I2C_ADDR 0x27
+#define LCD_COLUMNS 20
+#define LCD_LINES 4
+
+// Кнопки
+const int buttonOk = 12;   // Кнопка подверждения
+const int buttonUp = 13;    // Верхняя кнопка
+const int buttonDown = 16;  // Нижняя кнопка
+const int pinTickBalance = 26;
+const int pinDataBalance = 27;
+
+const char* ssid = "mr_home";       // Название Wi-Fi
+const char* password = "46981097";  // Пароль Wi-Fi
+
+const uint8_t wifiIcon[4][8] = {
+  {
+    0b00000,
+    0b00000,
+    0b00000,
+    0b00000,
+    0b00000,
+    0b00000,
+    0b00000,
+    0b00100,
+  },
+  {
+    0b00000,
+    0b00000,
+    0b00000,
+    0b00000,
+    0b00000,
+    0b01110,
+    0b00000,
+    0b00100,
+  },
+  {
+    0b00000,
+    0b00000,
+    0b00000,
+    0b11111,
+    0b00000,
+    0b01110,
+    0b00000,
+    0b00100,
+  },
+  {
+    0b01110,
+    0b10001,
+    0b00000,
+    0b11111,
+    0b00000,
+    0b01110,
+    0b00000,
+    0b00100,
+  },
+};
+
+// Переменные
+int amount = 0;
+int settingIndex = 0;
+unsigned long lastPressTime = 0;
+const unsigned long longPressThreshold = 1000;  // 1 сек
+
+LiquidCrystal_I2C lcd(I2C_ADDR, LCD_COLUMNS, LCD_LINES);
+
+MenuContainer container;
+
+int getSignalStrength(long rssi) {
+  if (rssi <= -80) {
+    return 0;  // Очень слабый сигнал
+  } else if (rssi > -80 && rssi <= -65) {
+    return 1;  // Слабый сигнал
+  } else if (rssi > -65 && rssi <= -50) {
+    return 2;  // Хороший сигнал
+  } else {
+    return 3;  // Отличный сигнал
+  }
+}
+
+void updateWifiIcon() {
+  static long lastTime = 0;
+  long currTime = millis();
+
+  if (currTime - lastTime < 1000) return;
+
+  lastTime = currTime;
+
+  char icons[4] = { '\x00', '\x01', '\x02', '\x03' };
+
+  lcd.setCursor(19, 0);
+  if (WiFi.status() == WL_CONNECTED) {
+    long rssi = WiFi.RSSI();  // Получаем RSSI (силу сигнала)    
+    int rssiIndex = getSignalStrength(rssi);  // Градация сигнала
+    lcd.print(icons[rssiIndex]);
+
+  } else {
+    Serial.println("Not connected :(");
+    lcd.print(icons[0]);
+  }
+}
+
+void setup() {
+  Serial.begin(9600);
+
+  pinMode(buttonOk, INPUT_PULLUP);
+  pinMode(buttonUp, INPUT_PULLUP);
+  pinMode(buttonDown, INPUT_PULLUP);
+  pinMode(pinTickBalance, INPUT_PULLUP);
+  pinMode(pinDataBalance, OUTPUT);
+
+  Wire.begin(14, 15);
+  lcd.init();
+  lcd.backlight();
+
+  for (int i = 0; i < 4; i++) {
+    lcd.createChar(i, (uint8_t*)wifiIcon[i]);
+  }
+
+  WiFi.begin(ssid, password);
+  Serial.println("Connecting.");
+
+  // Ожидание подключения
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(1000);
+    Serial.print(".");
+  }
+
+  Serial.println("Wi-Fi connected!");
+  Serial.print("IP Address: ");
+  Serial.println(WiFi.localIP());
+  Serial.print("Signal strength (RSSI): ");
+  Serial.println(WiFi.RSSI());
+
+  Event ev(START);
+  container.handleEvent(&ev);
+}
+
+void loop() {
+  // Обработка иконка Wi-Fi
+  updateWifiIcon();
+  
+  // Обработка кнопок
+  if (digitalRead(buttonUp) == LOW) {
+    delay(20);
+    while (digitalRead(buttonUp) == LOW)
+      ;
+    Event ev(BUTTON_UP_PRESSED);
+    container.handleEvent(&ev);
+  } else if (digitalRead(buttonDown) == LOW) {
+    delay(20);
+    while (digitalRead(buttonDown) == LOW)
+      ;
+    Event ev(BUTTON_DOWN_PRESSED);
+    container.handleEvent(&ev);
+  } else if (digitalRead(buttonOk) == LOW) {
+    delay(20);
+    while (digitalRead(buttonOk) == LOW)
+      ;
+    Event ev(BUTTON_OK_PRESSED);
+    container.handleEvent(&ev);
+  } else if (digitalRead(pinTickBalance) == LOW) {
+    delay(20);
+    while (digitalRead(pinTickBalance) == LOW)
+      ;
+    Event ev(TICK);
+    container.handleEvent(&ev);
+  }  
+}
