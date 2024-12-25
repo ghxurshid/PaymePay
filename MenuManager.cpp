@@ -14,7 +14,15 @@ static int balance = 0;
 const char* paycomUrl = "https://checkout.test.paycom.uz/api";
 const char* apiKey = "5e730e8e0b852a417aa49ceb:ZPDODSiTYKuX0jyO7Kl2to4rQbNwG08jbghj";
 
+const char* ssid = "mr_home";       // Название Wi-Fi
+const char* password = "46981097";  // Пароль Wi-Fi
+
 const int pinDataBalance = 19;
+
+int calcIndent(const String& text) {
+  int cnt = text.length();
+  return std::max(0, (20 - cnt) / 2);
+}
 
 // Реализация Event
 Event::Event(EventType type) : m_type(type) {}
@@ -27,6 +35,14 @@ EventType Event::eventType() const {
 BaseMenu::BaseMenu() : m_next(nullptr), m_prev(nullptr) {}
 
 BaseMenu::~BaseMenu() {}
+
+void BaseMenu::draw() {
+  lcd.clear();
+  lcd.setCursor(0,0); lcd.print(m_title);
+  lcd.setCursor(calcIndent(m_message1),1); lcd.print(m_message1);
+  lcd.setCursor(calcIndent(m_message2),2); lcd.print(m_message2);
+  lcd.setCursor(calcIndent(m_message3),3); lcd.print(m_message3);
+}
 
 void BaseMenu::setNavigations(BaseMenu* next, BaseMenu* prev, std::vector<BaseMenu*>& pages) {
   m_next = next;
@@ -43,6 +59,7 @@ BaseMenu* BaseMenu::prev() {
 }
 
 void BaseMenu::show() {
+  onShowing();
   draw();
   onShow();
 }
@@ -54,9 +71,16 @@ bool BaseMenu::shouldNext() {
 }
 
 // Реализация WelcomeMenu
-WelcomeMenu::WelcomeMenu() {}
+WelcomeMenu::WelcomeMenu() {   
+  m_message1 = String("Welcome!");
+}
+
+void WelcomeMenu::onShowing() {
+  
+}
 
 void WelcomeMenu::onShow() {
+  delay(1000);
   m_shouldNext = true;
 }
 
@@ -70,55 +94,67 @@ void WelcomeMenu::onHide() {
 }
 
 void WelcomeMenu::draw() {
-  lcd.clear();
-  lcd.setCursor(3, 0);
-  lcd.print("Welcome!!!");
-  delay(1000);
+  BaseMenu::draw();
 }
 
 // Реализация InitializationMenu
-InitializationMenu::InitializationMenu() {}
+InitializationMenu::InitializationMenu() {
+  m_message1 = String("Initialization");
+}
+
+void InitializationMenu::onShowing() {
+}
 
 void InitializationMenu::onShow() {
+  delay(1000);
+  m_message1 = String("WiFi");
+  m_message2 = String("Connecting");
+
+  draw();
+
+  WiFi.begin(ssid, password);
+
+  int tryCnt = 0;
+  // Ожидание подключения
+  while (WiFi.status() != WL_CONNECTED) {    
+    m_message3 += ".";
+    draw();
+    delay(1000);
+    tryCnt ++;
+    if (tryCnt > 19) break;
+  }
+
+  delay(1000);
   m_shouldNext = true;
 }
 
 void InitializationMenu::handleEvent(MenuContainer* container, Event* evnt) {
-  if (evnt->eventType() == BUTTON_UP_PRESSED) container->next();
-  else if (evnt->eventType() == BUTTON_DOWN_PRESSED) container->prev();
+  //not implemented
 }
 
 void InitializationMenu::onHide() {
-
+  //not implemented
 }
 
 void InitializationMenu::draw() {
-  lcd.clear();
-
-  lcd.setCursor(0, 0);
-  lcd.print("Initialization");
-
-  delay(50);
-
-  lcd.clear();
-
-  lcd.setCursor(5, 0);
-  lcd.print("Wi-Fi");
-
-  lcd.setCursor(1, 1);
-  lcd.print("Connecting...");
-  delay(100);
+  BaseMenu::draw();
 }
 
 // Реализация MainMenu
-MainMenu::MainMenu() {}
+MainMenu::MainMenu() {
+  m_title = String("_____Main__Menu_____");
+  
+}
+
+void MainMenu::onShowing() {
+  m_message2 = String(balance) + String(" sum");
+}
 
 void MainMenu::onShow() {
-  Serial.println("MainMenu onShow");
+  //not implemented
 }
 
 void MainMenu::handleEvent(MenuContainer* container, Event* evnt) {
-
   auto ev = evnt->eventType();
   switch (ev) {
     case BUTTON_UP_PRESSED:
@@ -134,24 +170,33 @@ void MainMenu::handleEvent(MenuContainer* container, Event* evnt) {
 }
 
 void MainMenu::onHide() {
-
+  m_message1.clear();
+  m_message2.clear();
+  m_message3.clear();
 }
 
 void MainMenu::draw() {
-  lcd.clear();
-  lcd.setCursor(6, 0);
-  lcd.print("BOT");
-
-  lcd.setCursor(2, 1);
-  lcd.print("Electro Prog");
+  BaseMenu::draw();
 }
 
 // Реализация InputAmountMenu
-InputAmountMenu::InputAmountMenu() {}
+InputAmountMenu::InputAmountMenu() {  
+  m_title = String("____Enter_amount____");  
+}
+
+void InputAmountMenu::onShowing() {
+  m_amount = 5000;
+  m_message2 = String(m_amount) + String("som");
+}
 
 void InputAmountMenu::onShow() {
-  m_amount = 5000;
-  amount = m_amount;
+  String input = ""; // Переменная для сохранения данных
+  while (Serial.available()) {
+    char received = Serial.read(); // Считываем один символ
+    input += received;             // Добавляем символ в строку
+    delay(2);                      // Небольшая задержка для предотвращения потери данных
+  }
+  token = input;
   m_shouldNext = true;
 }
 
@@ -167,24 +212,27 @@ void InputAmountMenu::handleEvent(MenuContainer* container, Event* evnt) {
     draw();
   }
   else if (evnt->eventType() == BUTTON_OK_PRESSED)
-  {
-    amount = m_amount;
+  { 
     m_shouldNext = true;
   }
 }
 
 void InputAmountMenu::onHide() {
-  //not implemented
+  amount = m_amount;
+  m_message1.clear();
+  m_message2.clear();
+  m_message3.clear();
 }
 
 void InputAmountMenu::draw() {
-  lcd.clear();
-  lcd.print("Amount: ");
-  lcd.print(m_amount);
+  BaseMenu::draw();
 }
 
 // Реализация PayMenu
-PayMenu::PayMenu() {}
+PayMenu::PayMenu() {
+  m_title = String("____Proccess_Pay____");
+  m_message2 = String("Create check");
+}
 
 void checkStack() {
   UBaseType_t stackSize = configMINIMAL_STACK_SIZE; // Размер стека задачи (может быть другим, если вы создавали задачу с другим размером)
@@ -229,46 +277,36 @@ void printSRAMUsage() {
   Serial.printf("Free Heap: %u bytes\n", freeHeap);
 }
 
-void printError(const String& message, const String& value = "") {
-  lcd.clear();
-  lcd.print(message);
-  if (value != "") lcd.print(value);
-  delay(1000);
-}
-
 String sendHttpRequest(const String& url, const String& authKey, const String& payload, int& httpCode) {
   WiFiClientSecure client;
   client.setInsecure();
+  Serial.println("- - - - - - - - -");
+  Serial.println(payload);
 
   HTTPClient http;
   http.begin(client, url);
   http.addHeader("X-Auth", authKey);
   http.addHeader("Content-Type", "application/json");
 
-  Serial.println(url);
-  Serial.println(authKey);
-  Serial.println(payload);
-
-  checkStack();
-  checkHeap();
-
   httpCode = http.POST(payload); // HTTP POST запрос
   String response = httpCode == 200 ? http.getString() : String("");
   http.end();
+
+  Serial.println(response);
+  Serial.println("- - - - - - - - -");
 
   return response;
 }
 
 bool deserializeJsonResponse(const String& response, DynamicJsonDocument& doc) {
   DeserializationError error = deserializeJson(doc, response);
-  if (error) {
-    printError("JSON Error: ", error.c_str());
+  if (error) {    
     return false;
   }
   return true;
 }
 
-void processPayment(const String& paycomUrl, const String& apiKey, const String& token, const String& receiptId, int& amount, int& balance) {
+bool PayMenu::processPayment(const String& paycomUrl, const String& apiKey, const String& token, const String& receiptId) {
   String payload = String("{") +
                    "\"id\": 123," +
                    "\"method\": \"receipts.pay\"," +
@@ -281,7 +319,7 @@ void processPayment(const String& paycomUrl, const String& apiKey, const String&
   int httpResponseCode = 0;
   String response = sendHttpRequest(paycomUrl, apiKey, payload, httpResponseCode);
 
-  Serial.println(response);
+  bool success = false;
 
   if (httpResponseCode == 200) {
     DynamicJsonDocument doc(response.length() * 3);
@@ -289,25 +327,29 @@ void processPayment(const String& paycomUrl, const String& apiKey, const String&
       JsonObject receipt = doc["result"]["receipt"];
       if (receipt.containsKey("state")) {
         int state = receipt["state"];
-        if (state == 4) {
-          balance = amount;
-          amount = 0;
-          lcd.clear();
-          lcd.print("Payment Success!");
-          delay(1000);
-        } else {
-          printError("Unsucces: ", String(state));
+        if (state == 4) {           
+          m_message2 = String("Payment Success!"); 
+          success = true;          
+        } else {           
+          m_message2 = String("Unsucces:") + String(state);
         }
       } else {
-        printError("Error: no State");
+        m_message2 = String("Error: no State");        
       }
+    } else {
+      m_message2 = String("JSON Error:");      
     }
   } else {
-    printError("Error P: ", String(httpResponseCode));
+    m_message2 = String("Pay HTTP Error:") + String(httpResponseCode);
   }
+ 
+  return success;
 }
 
-void createReceipt(const String& paycomUrl, const String& apiKey, const String& token, int& amount, int& balance) {
+String PayMenu::createReceipt(const String& paycomUrl, const String& apiKey, int amount) {
+  m_message2 = String("Create Receipt");
+  draw();
+
   String payload = String("{") +
                    "\"id\": 3465434565," +
                    "\"method\": \"receipts.create\"," +
@@ -319,37 +361,42 @@ void createReceipt(const String& paycomUrl, const String& apiKey, const String& 
 
   int httpResponseCode = 0;
   String response = sendHttpRequest(paycomUrl, apiKey, payload, httpResponseCode);
-  Serial.println(response);
 
   if (httpResponseCode == 200) {
     DynamicJsonDocument doc(response.length() * 3);
     if (deserializeJsonResponse(response, doc)) {
       const char* receiptId = doc["result"]["receipt"]["_id"];
       if (receiptId != nullptr) {
-        processPayment(paycomUrl, apiKey, token, receiptId, amount, balance);
+        return String(receiptId);
       } else {
-        printError("Error: no ID");
+        m_message2 = String("Error: no receiptId");
       }
     }
   } else {
-    printError("Error C: ", String(httpResponseCode));
+    m_message2 = String("Create HTTP Err:") + String(httpResponseCode);
   }
+
+  return String("");
 }
  
-void PayMenu::onShow() {
-  String input = ""; // Переменная для сохранения данных
-  while (Serial.available()) {
-    char received = Serial.read(); // Считываем один символ
-    input += received;             // Добавляем символ в строку
-    delay(2);                      // Небольшая задержка для предотвращения потери данных
+void PayMenu::onShowing() {
+  m_message2 = String("Create check");
+}
+ 
+void PayMenu::onShow() {   
+  // Запуск процесса
+  String receiptId = createReceipt(paycomUrl, apiKey, amount);
+  if (receiptId.length() > 0) {
+    m_message2 = String("Pay proccess");
+    draw();
+    bool result = processPayment(paycomUrl, apiKey, token, receiptId);
+    if (result) {
+      balance = amount;       
+    }
   }
 
-  token = input;
-
-  // Запуск процесса
-  createReceipt(paycomUrl, apiKey, token, amount, balance);
-
-  delay(3000);
+  draw();
+  delay(1000);
   m_shouldNext = true;
 }
 
@@ -359,17 +406,22 @@ void PayMenu::handleEvent(MenuContainer* container, Event* evnt) {
 }
 
 void PayMenu::onHide() {
-
+  amount = 0;
+  m_message1.clear();
+  m_message2.clear();
+  m_message3.clear();
 }
 
 void PayMenu::draw() {
-  lcd.clear();
-  lcd.print("Create receipt");
-  delay(500);
+  BaseMenu::draw();
 }
 
 // Реализация SettingsMenu
 SettingsMenu::SettingsMenu() {}
+
+void SettingsMenu::onShowing() {
+  //not implemented
+}
 
 void SettingsMenu::onShow() {
   lcd.clear();
@@ -387,12 +439,15 @@ void SettingsMenu::onHide() {
 }
 
 void SettingsMenu::draw() {
-
+  BaseMenu::draw();
 }
 
 // Реализация WifiSettingsMenu
 WifiSettingsMenu::WifiSettingsMenu() {}
 
+void WifiSettingsMenu::onShowing() {
+
+}
 void WifiSettingsMenu::onShow() {
   lcd.clear();
   lcd.print("WiFi onSHow");
@@ -409,11 +464,15 @@ void WifiSettingsMenu::onHide() {
 }
 
 void WifiSettingsMenu::draw() {
-
+  BaseMenu::draw();
 }
 
 // Реализация NotificationSettingsMenu
 NotificationSettingsMenu::NotificationSettingsMenu() {}
+
+void NotificationSettingsMenu::onShowing() {
+  //not implemented
+}
 
 void NotificationSettingsMenu::onShow() {
   lcd.clear();
@@ -430,7 +489,7 @@ void NotificationSettingsMenu::onHide() {
 }
 
 void NotificationSettingsMenu::draw() {
-
+  BaseMenu::draw();
 }
 
 // Реализация MenuContainer
@@ -520,4 +579,3 @@ void MenuContainer::prev() {
   m_currentMenu = m_currentMenu->prev();
   m_currentMenu->show();
 }
-

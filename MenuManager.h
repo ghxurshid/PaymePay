@@ -34,11 +34,12 @@ class Event {
 class BaseMenu {
   public:
     BaseMenu();
+    virtual void onShowing() = 0;
     virtual void onShow() = 0;
     virtual void handleEvent(MenuContainer* container, Event* evnt) = 0;
     virtual void onHide() = 0;
 
-    virtual void draw() = 0;
+    virtual void draw();
 
     virtual ~BaseMenu();
 
@@ -54,6 +55,34 @@ class BaseMenu {
     BaseMenu* m_prev;     // Ссылка на предыдущее меню             
     std::vector<BaseMenu*> m_pages; // Вектор подменю
     bool m_shouldNext = false; //Флаг для информирования следуюшей
+    String m_title = String("");
+    String m_message1 = String("");
+    String m_message2 = String("");
+    String m_message3 = String("");
+};
+
+// Приветственное меню
+class WelcomeMenu : public BaseMenu {
+  public:
+    WelcomeMenu();
+
+    void onShowing() override;
+    void onShow() override;
+    void handleEvent(MenuContainer* container, Event* evnt) override;
+    void onHide() override;
+    void draw() override;
+};
+
+// Меню инициализации
+class InitializationMenu : public BaseMenu {
+  public:
+    InitializationMenu();
+
+    void onShowing() override;
+    void onShow() override;
+    void handleEvent(MenuContainer* container, Event* evnt) override;
+    void onHide() override;
+    void draw() override;  
 };
 
 // Главное меню
@@ -61,6 +90,7 @@ class MainMenu : public BaseMenu {
   public:
     MainMenu();
 
+    void onShowing() override;
     void onShow() override;
     void handleEvent(MenuContainer* container, Event* evnt) override;
     void onHide() override;
@@ -72,6 +102,7 @@ class InputAmountMenu : public BaseMenu {
   public:
     InputAmountMenu();
 
+    void onShowing() override;
     void onShow() override;
     void handleEvent(MenuContainer* container, Event* evnt) override;
     void onHide() override;
@@ -86,10 +117,15 @@ class PayMenu : public BaseMenu {
   public:
     PayMenu();
 
+    void onShowing() override;
     void onShow() override;
     void handleEvent(MenuContainer* container, Event* evnt) override;
     void onHide() override;
     void draw() override;
+
+  private:
+    String createReceipt(const String& paycomUrl, const String& apiKey, int amount);
+    bool processPayment(const String& paycomUrl, const String& apiKey, const String& token, const String& receiptId);
 };
 
 // Меню настроек
@@ -97,6 +133,7 @@ class SettingsMenu : public BaseMenu {
   public:
     SettingsMenu();
 
+    void onShowing() override;
     void onShow() override;
     void handleEvent(MenuContainer* container, Event* evnt) override;
     void onHide() override;
@@ -108,28 +145,7 @@ class WifiSettingsMenu : public BaseMenu {
   public:
     WifiSettingsMenu();
 
-    void onShow() override;
-    void handleEvent(MenuContainer* container, Event* evnt) override;
-    void onHide() override;
-    void draw() override;
-};
-
-// Приветственное меню
-class WelcomeMenu : public BaseMenu {
-  public:
-    WelcomeMenu();
-
-    void onShow() override;
-    void handleEvent(MenuContainer* container, Event* evnt) override;
-    void onHide() override;
-    void draw() override;
-};
-
-// Меню инициализации
-class InitializationMenu : public BaseMenu {
-  public:
-    InitializationMenu();
-
+    void onShowing() override;
     void onShow() override;
     void handleEvent(MenuContainer* container, Event* evnt) override;
     void onHide() override;
@@ -141,6 +157,7 @@ class NotificationSettingsMenu : public BaseMenu {
   public:
     NotificationSettingsMenu();
 
+    void onShowing() override;
     void onShow() override;
     void handleEvent(MenuContainer* container, Event* evnt) override;
     void onHide() override;
@@ -162,4 +179,3 @@ class MenuContainer {
 };
 
 #endif
-

@@ -12,10 +12,7 @@ const int buttonUp = 4;    // Верхняя кнопка
 const int buttonDown = 2;  // Нижняя кнопка
 const int pinTickBalance = 12;
 const int pinDataBalance = 13;
-
-const char* ssid = "PLUM TECHNOLOGIES";       // Название Wi-Fi
-const char* password = "455855454";  // Пароль Wi-Fi
-
+ 
 const uint8_t wifiIcon[4][8] = {
   {
     0b00000,
@@ -92,7 +89,7 @@ void updateWifiIcon() {
 
   char icons[4] = { '\x00', '\x01', '\x02', '\x03' };
 
-  //  lcd.setCursor(19, 0);
+  lcd.setCursor(19, 0);
   if (WiFi.status() == WL_CONNECTED) {
     long rssi = WiFi.RSSI();  // Получаем RSSI (силу сигнала)
     int rssiIndex = getSignalStrength(rssi);  // Градация сигнала
@@ -108,7 +105,7 @@ void setup() {
   // put your setup code here, to run once:
   Serial.begin(9600);
 
-  //  pinMode(16, INPUT);
+  //  pinMode(buttonOk, INPUT);
   //  pinMode(buttonUp, INPUT_PULLUP);
   //  pinMode(buttonDown, INPUT_PULLUP);
   //  pinMode(pinTickBalance, INPUT_PULLUP);
@@ -122,20 +119,21 @@ void setup() {
     lcd.createChar(i, (uint8_t*)wifiIcon[i]);
   }
 
-  WiFi.begin(ssid, password);
-  Serial.println("Connecting.");
+  // WiFi.begin(ssid, password);
+  // Serial.println("Connecting.");
 
-  // Ожидание подключения
-  while (WiFi.status() != WL_CONNECTED) {
-    delay(1000);
-    Serial.print(".");
-  }
+  // // Ожидание подключения
+  // while (WiFi.status() != WL_CONNECTED) {
+  //   delay(1000);
+  //   Serial.print(".");
+  //   break;
+  // }
 
-  Serial.println("Wi-Fi connected!");
-  Serial.print("IP Address: ");
-  Serial.println(WiFi.localIP());
-  Serial.print("Signal strength (RSSI): ");
-  Serial.println(WiFi.RSSI());
+  // Serial.println("Wi-Fi connected!");
+  // Serial.print("IP Address: ");
+  // Serial.println(WiFi.localIP());
+  // Serial.print("Signal strength (RSSI): ");
+  // Serial.println(WiFi.RSSI());
 
   Event ev(START);
   container.handleEvent(&ev);
