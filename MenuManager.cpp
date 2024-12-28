@@ -10,13 +10,14 @@
 
 static int amount = 0;
 static String token;
-static int balance = 0;
-const char* paycomUrl = "https://checkout.test.paycom.uz/api";
-const char* apiKey = "5e730e8e0b852a417aa49ceb:ZPDODSiTYKuX0jyO7Kl2to4rQbNwG08jbghj";
+static int balance = 10;
+const char* paycomUrl = "https://checkout.paycom.uz/api";
+const char* apiKey = "668e3291d718688110dd373f:d2VZCGYJAY&wf#kuGesHCO3p#F9&bRZ@Yx#O";
 
 const char* ssid = "mr_home";       // Название Wi-Fi
 const char* password = "46981097";  // Пароль Wi-Fi
 
+const int busyPin = 2;
 const int pinDataBalance = 19;
 
 int calcIndent(const String& text) {
@@ -147,7 +148,7 @@ MainMenu::MainMenu() {
 }
 
 void MainMenu::onShowing() {
-  m_message2 = String(balance) + String(" sum");
+  
 }
 
 void MainMenu::onShow() {
@@ -176,6 +177,7 @@ void MainMenu::onHide() {
 }
 
 void MainMenu::draw() {
+  m_message2 = String(balance) + String(" sum");
   BaseMenu::draw();
 }
 
@@ -185,8 +187,8 @@ InputAmountMenu::InputAmountMenu() {
 }
 
 void InputAmountMenu::onShowing() {
-  m_amount = 5000;
-  m_message2 = String(m_amount) + String("som");
+  m_amount = 10;
+  m_message2 = String(m_amount) + String(" som");
 }
 
 void InputAmountMenu::onShow() {
@@ -225,6 +227,7 @@ void InputAmountMenu::onHide() {
 }
 
 void InputAmountMenu::draw() {
+  m_message2 = String(m_amount) + String(" som");
   BaseMenu::draw();
 }
 
@@ -385,6 +388,7 @@ void PayMenu::onShowing() {
  
 void PayMenu::onShow() {   
   // Запуск процесса
+  printSRAMUsage();
   String receiptId = createReceipt(paycomUrl, apiKey, amount);
   if (receiptId.length() > 0) {
     m_message2 = String("Pay proccess");
@@ -548,18 +552,26 @@ MenuContainer::MenuContainer() : m_currentMenu(nullptr) {
 
 
 void MenuContainer::handleEvent(Event* evnt) {
+  digitalWrite(busyPin, HIGH);
   if (m_currentMenu == nullptr)
     m_currentMenu = m_menuList.front();
 
   if (evnt->eventType() == EventType::START) {
     m_currentMenu->show();
-  } else if (evnt->eventType() == EventType::TICK) {
+  } else if (evnt->eventType() == EventType::TICK_DOWN) {
     digitalWrite(pinDataBalance, balance > 0 ? HIGH : LOW);
-    balance = std::max(0, balance - 1000);
+    int oldvalue = balance;
+    balance = std::max(0, balance - 1);
+    if (oldvalue != balance) {
+      m_currentMenu->draw();
+    }    
+  } else if (evnt->eventType() == EventType::TICK_UP) {
+    digitalWrite(pinDataBalance, LOW);
   } else {
     m_currentMenu->handleEvent(this, evnt);
   }
   while (m_currentMenu->shouldNext()) next();
+  digitalWrite(busyPin, LOW);
 }
 
 void MenuContainer::next() {

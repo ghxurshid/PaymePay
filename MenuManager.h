@@ -16,7 +16,8 @@ enum EventType {
     BUTTON_UP_PRESSED,
     BUTTON_DOWN_PRESSED,
     UART_ON_RECEIVED,
-    TICK,
+    TICK_UP,
+    TICK_DOWN,
     UPDATE
 };
 
@@ -109,7 +110,7 @@ class InputAmountMenu : public BaseMenu {
     void draw() override;
 
   protected:
-    int m_amount = 5000;
+    int m_amount = 10;
 };
 
 // Меню оплаты
